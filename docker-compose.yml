@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: environmental-metrics-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount code for hot reload during development
+      - ./app:/app/app
+      # Mount .env file
+      - ./.env:/app/.env
+      # Mount Firebase credentials
+      - ./firebase-credentials.json:/app/firebase-credentials.json
+    environment:
+      - ENVIRONMENT=development
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
