@@ -114,13 +114,11 @@ async def health_check():
 app.include_router(
     air_quality.router,
     prefix="/api/v1/air-quality",
-    tags=["Air Quality"]
 )
 
 app.include_router(
     water_quality.router,
     prefix="/api/v1/water-quality",
-    tags=["Water Quality"]
 )
 
 # API version info endpoint

@@ -1,53 +1,262 @@
 """
-Air Quality database models.
-
-IMPORTANT: These are placeholder models. Update them to match your actual database schema.
+Air Quality database models - matching actual database schema.
 """
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
-from datetime import datetime
-
+from sqlalchemy import Column, String, Float, BigInteger
 from app.core.database import Base
 
+# ============================
+# Vista Temperatura
+# ============================
+class VTemperatura(Base):
+    __tablename__ = "v_temperatura"
+    __table_args__ = {"schema": "public"}
 
-class AirQuality(Base):
-    """
-    Air Quality measurement model.
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
 
-    TODO: Update this model to match your actual database table structure.
-    Common fields for air quality might include:
-    - PM2.5, PM10 (particulate matter)
-    - CO, CO2 (carbon monoxide/dioxide)
-    - NO2, SO2 (nitrogen/sulfur dioxide)
-    - O3 (ozone)
-    - Temperature, humidity
-    - Location/coordinates
-    - Timestamp
-    """
+    temp_max_absoluta = Column(Float)
+    temp_min_absoluta = Column(Float)
+    temp_max_med = Column(Float)
+    temp_min_med = Column(Float)
+    temp_med = Column(Float)
 
-    __tablename__ = "air_quality"
+# ============================
+# Vista Humedad, Radiación y UV
+# ============================
+class VHumedadRadiacionUV(Base):
+    __tablename__ = "v_humedad_radiacion_uv"
+    __table_args__ = {"schema": "public"}
 
-    # Example fields - customize based on your actual schema
-    id = Column(Integer, primary_key=True, index=True)
-    measurement_date = Column(DateTime, nullable=False, index=True)
-    location = Column(String(255), nullable=True)
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
 
-    # Air quality metrics (example - adjust to your schema)
-    pm25 = Column(Float, nullable=True, comment="PM2.5 particulate matter")
-    pm10 = Column(Float, nullable=True, comment="PM10 particulate matter")
-    co = Column(Float, nullable=True, comment="Carbon monoxide")
-    no2 = Column(Float, nullable=True, comment="Nitrogen dioxide")
-    so2 = Column(Float, nullable=True, comment="Sulfur dioxide")
-    o3 = Column(Float, nullable=True, comment="Ozone")
+    humedad_rel_med_mens = Column(Float)
+    rad_global_med = Column(BigInteger)
+    uvb_prom = Column(Float)
 
-    # Environmental conditions
-    temperature = Column(Float, nullable=True)
-    humidity = Column(Float, nullable=True)
+# ============================
+# Vistas MP25
+# ============================
+class VMp25Anual(Base):
+    __tablename__ = "v_mp25_anual"
+    __table_args__ = {"schema": "public"}
 
-    # Metadata
-    notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
 
-    def __repr__(self):
-        return f"<AirQuality(id={self.id}, location={self.location}, date={self.measurement_date})>"
+    mp25_max_hor_anual = Column(Float)
+    mp25_min_hor_anual = Column(Float)
+    mp25_perc50       = Column(Float)
+    mp25_perc90       = Column(Float)
+    mp25_perc95       = Column(Float)
+    mp25_perc98       = Column(BigInteger)
+
+class VMp25Mensual(Base):
+    __tablename__ = "v_mp25_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    mp25_med_mens = Column(Float)
+
+# ============================
+# Vistas MP10
+# ============================
+class VMp10Anual(Base):
+    __tablename__ = "v_mp10_anual"
+    __table_args__ = {"schema": "public"}
+
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    mp10_max_hor_anual = Column(Float)
+    mp10_min_hor_anual = Column(Float)
+    mp10_perc50       = Column(Float)
+    mp10_perc90       = Column(Float)
+    mp10_perc95       = Column(Float)
+    mp10_perc98       = Column(BigInteger)
+
+class VMp10Mensual(Base):
+    __tablename__ = "v_mp10_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    mp10_med_mens = Column(BigInteger)
+
+# ============================
+# Vistas O3
+# ============================
+class VO3Anual(Base):
+    __tablename__ = "v_o3_anual"
+    __table_args__ = {"schema": "public"}
+
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    o3_max_hor_anual = Column(Float)
+    o3_min_hor_anual = Column(Float)
+    o3_perc50       = Column(Float)
+    o3_perc90       = Column(Float)
+    o3_perc95       = Column(Float)
+    o3_perc98       = Column(Float)
+    o3_perc99       = Column(Float)
+
+class VO3Mensual(Base):
+    __tablename__ = "v_o3_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    o3_med_mens = Column(Float)
+
+# ============================
+# Vistas SO2
+# ============================
+class VSo2Anual(Base):
+    __tablename__ = "v_so2_anual"
+    __table_args__ = {"schema": "public"}
+
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    so2_max_hor_anual = Column(Float)
+    so2_min_anual     = Column(Float)
+    so2_perc50        = Column(Float)
+    so2_perc90        = Column(Float)
+    so2_perc95        = Column(Float)
+    so2_perc98        = Column(Float)
+    so2_perc99        = Column(Float)
+
+class VSo2Mensual(Base):
+    __tablename__ = "v_so2_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    so2_med_mens = Column(Float)
+
+# ============================
+# Vistas NO2
+# ============================
+class VNo2Anual(Base):
+    __tablename__ = "v_no2_anual"
+    __table_args__ = {"schema": "public"}
+
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    no2_max_hor_anual = Column(Float)
+    no2_min_hor_anual = Column(Float)
+    no2_perc50        = Column(Float)
+    no2_perc90        = Column(Float)
+    no2_perc95        = Column(Float)
+    no2_perc98        = Column(Float)
+    no2_perc99        = Column(Float)
+
+class VNo2Mensual(Base):
+    __tablename__ = "v_no2_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    no2_med_mens = Column(Float)
+
+# ============================
+# Vistas CO
+# ============================
+class VCoAnual(Base):
+    __tablename__ = "v_co_anual"
+    __table_args__ = {"schema": "public"}
+
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    co_max_hor_anual = Column(Float)
+    co_min_hor_anual = Column(Float)
+    co_perc50        = Column(Float)
+    co_perc90        = Column(Float)
+    co_perc95        = Column(Float)
+    co_perc98        = Column(Float)
+    co_perc99        = Column(Float)
+
+class VCoMensual(Base):
+    __tablename__ = "v_co_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    co_med_mens = Column(Float)
+
+# ============================
+# Vistas NO
+# ============================
+class VNoAnual(Base):
+    __tablename__ = "v_no_anual"
+    __table_args__ = {"schema": "public"}
+
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    no_max_hor_anual = Column(Float)
+    no_min_hor_anual = Column(Float)
+    no_perc50 = Column(Float)
+    no_perc90 = Column(Float)
+    no_perc95 = Column(Float)
+    no_perc98 = Column(Float)
+    no_perc99 = Column(Float)
+
+class VNoMensual(Base):
+    __tablename__ = "v_no_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    no_med_mens = Column(Float)
+
+# ============================
+# Vistas NOX
+# ============================
+class VNoxAnual(Base):
+    __tablename__ = "v_nox_anual"
+    __table_args__ = {"schema": "public"}
+
+    anio = Column(BigInteger, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    nox_max_hor_anual = Column(Float)
+    nox_min_hor_anual = Column(Float)
+    nox_perc50 = Column(Float)
+    nox_perc90 = Column(Float)
+    nox_perc95 = Column(Float)
+    nox_perc98 = Column(Float)
+    nox_perc99 = Column(Float)
+
+class VNoxMensual(Base):
+    __tablename__ = "v_nox_mensual"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    nox_med_mens = Column(Float)
+
+# ============================
+# Vista Eventos de Olas de Calor
+# ============================
+class VNumEventosDeOlasDeCalor(Base):
+    __tablename__ = "v_num_eventos_de_olas_de_calor"
+    __table_args__ = {"schema": "public"}
+
+    mes = Column(String, primary_key=True)
+    estacion = Column(String, primary_key=True)
+
+    num_eventos_de_olas_de_calor = Column(BigInteger)

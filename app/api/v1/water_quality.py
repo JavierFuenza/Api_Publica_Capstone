@@ -2,162 +2,211 @@
 Water Quality API endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import Optional
-from datetime import datetime
+from typing import List
 
 from app.core.database import get_db
 from app.core.security import get_current_user, FirebaseUser
-from app.models.water_quality import WaterQuality
-from app.schemas.water_quality import WaterQualityResponse, WaterQualityListResponse
+from app.models.water_quality import *
+from app.schemas.water_quality import *
 
+# Create sub-routers to organize endpoints by category
+vistas_router = APIRouter(
+    prefix="/vistas",
+    tags=["Water Quality - General Views"],
+    responses={404: {"description": "Not found"}}
+)
+
+contaminantes_router = APIRouter(
+    prefix="/contaminantes",
+    tags=["Water Quality - Contaminants"],
+    responses={404: {"description": "Not found"}}
+)
+
+hidrologia_router = APIRouter(
+    prefix="/hidrologia",
+    tags=["Water Quality - Hydrology"],
+    responses={404: {"description": "Not found"}}
+)
+
+meteorologicos_router = APIRouter(
+    prefix="/meteorologicos",
+    tags=["Water Quality - Meteorological"],
+    responses={404: {"description": "Not found"}}
+)
+
+almacenamiento_router = APIRouter(
+    prefix="/almacenamiento",
+    tags=["Water Quality - Storage"],
+    responses={404: {"description": "Not found"}}
+)
+
+# Main router to include in main.py
 router = APIRouter()
 
+# ============================
+# Views (return full table)
+# ============================
 
-@router.get(
-    "/",
-    response_model=WaterQualityListResponse,
-    summary="Get water quality measurements",
-    description="""
-    Retrieve a list of water quality measurements with optional filtering.
-
-    **Authentication required**: Include Firebase ID token in Authorization header.
-
-    **Filters:**
-    - `date_from`: Get measurements from this date onwards
-    - `date_to`: Get measurements up to this date
-    - `location`: Filter by location name (partial match)
-    - `source`: Filter by water source type
-    - `limit`: Maximum number of records to return (default: 100, max: 1000)
-    - `offset`: Number of records to skip for pagination (default: 0)
-
-    **Example Response:**
-    ```json
-    {
-        "data": [
-            {
-                "id": 1,
-                "measurement_date": "2024-01-15T10:30:00",
-                "location": "River Station A",
-                "source": "River",
-                "ph": 7.2,
-                "dissolved_oxygen": 8.5,
-                ...
-            }
-        ],
-        "total": 150,
-        "limit": 100,
-        "offset": 0
-    }
-    ```
-    """
-)
-async def get_water_quality_list(
-    date_from: Optional[datetime] = Query(
-        None,
-        description="Filter measurements from this date (ISO format)"
-    ),
-    date_to: Optional[datetime] = Query(
-        None,
-        description="Filter measurements up to this date (ISO format)"
-    ),
-    location: Optional[str] = Query(
-        None,
-        description="Filter by location (partial match)"
-    ),
-    source: Optional[str] = Query(
-        None,
-        description="Filter by water source type"
-    ),
-    limit: int = Query(
-        100,
-        ge=1,
-        le=1000,
-        description="Maximum number of records to return"
-    ),
-    offset: int = Query(
-        0,
-        ge=0,
-        description="Number of records to skip"
-    ),
+@vistas_router.get("/mar-mensual", response_model=List[MarMensualSchema])
+async def get_mar_mensual(
     db: Session = Depends(get_db),
     current_user: FirebaseUser = Depends(get_current_user)
 ):
-    """Get list of water quality measurements with optional filters."""
+    """Get all monthly sea data - Complete view."""
+    data = db.query(VMarMensual).all()
+    return data
 
-    # Build query
-    query = db.query(WaterQuality)
-
-    # Apply filters
-    if date_from:
-        query = query.filter(WaterQuality.measurement_date >= date_from)
-
-    if date_to:
-        query = query.filter(WaterQuality.measurement_date <= date_to)
-
-    if location:
-        query = query.filter(WaterQuality.location.ilike(f"%{location}%"))
-
-    if source:
-        query = query.filter(WaterQuality.source.ilike(f"%{source}%"))
-
-    # Get total count
-    total = query.count()
-
-    # Apply pagination and ordering
-    measurements = (
-        query
-        .order_by(WaterQuality.measurement_date.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-
-    return WaterQualityListResponse(
-        data=measurements,
-        total=total,
-        limit=limit,
-        offset=offset
-    )
-
-
-@router.get(
-    "/{measurement_id}",
-    response_model=WaterQualityResponse,
-    summary="Get specific water quality measurement",
-    description="""
-    Retrieve a specific water quality measurement by ID.
-
-    **Authentication required**: Include Firebase ID token in Authorization header.
-
-    **Example Response:**
-    ```json
-    {
-        "id": 1,
-        "measurement_date": "2024-01-15T10:30:00",
-        "location": "River Station A",
-        "source": "River",
-        "ph": 7.2,
-        "dissolved_oxygen": 8.5,
-        ...
-    }
-    ```
-    """
-)
-async def get_water_quality_by_id(
-    measurement_id: int,
+@vistas_router.get("/glaciares-anual-cuenca", response_model=List[GlaciaresAnualCuencaSchema])
+async def get_glaciares_anual_cuenca(
     db: Session = Depends(get_db),
     current_user: FirebaseUser = Depends(get_current_user)
 ):
-    """Get a specific water quality measurement by ID."""
+    """Get all annual glacier data by basin - Complete view."""
+    data = db.query(VGlaciaresAnualCuenca).all()
+    return data
 
-    measurement = db.query(WaterQuality).filter(WaterQuality.id == measurement_id).first()
+# ============================
+# Tables (specific fields only)
+# ============================
 
-    if not measurement:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Water quality measurement with ID {measurement_id} not found"
-        )
+@contaminantes_router.get("/coliformes-biologica", response_model=List[ColiformesBiologicaSchema])
+async def get_coliformes_biologica(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Fecal coliforms in biological matrix by POAL station and date."""
+    data = db.query(
+        ColiformesFecalesEnMatrizBiologica.dia,
+        ColiformesFecalesEnMatrizBiologica.estaciones_poal,
+        ColiformesFecalesEnMatrizBiologica.value
+    ).all()
+    return [{"dia": row[0], "estaciones_poal": row[1], "value": row[2]} for row in data]
 
-    return measurement
+@contaminantes_router.get("/coliformes-acuosa", response_model=List[ColiformesAcuosaSchema])
+async def get_coliformes_acuosa(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Fecal coliforms in aqueous matrix by POAL station and date."""
+    data = db.query(
+        ColiformesFecalesEnMatrizAcuosa.dia,
+        ColiformesFecalesEnMatrizAcuosa.estaciones_poal,
+        ColiformesFecalesEnMatrizAcuosa.value
+    ).all()
+    return [{"dia": row[0], "estaciones_poal": row[1], "value": row[2]} for row in data]
+
+@contaminantes_router.get("/metales-sedimentaria", response_model=List[MetalesSedimentariaSchema])
+async def get_metales_sedimentaria(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Total metals in sedimentary matrix by metal type and station."""
+    data = db.query(
+        MetalesTotalesEnLaMatrizSedimentaria.dia,
+        MetalesTotalesEnLaMatrizSedimentaria.estaciones_poal,
+        MetalesTotalesEnLaMatrizSedimentaria.parametros_poal,
+        MetalesTotalesEnLaMatrizSedimentaria.value
+    ).all()
+    return [{"dia": row[0], "estaciones_poal": row[1], "parametros_poal": row[2], "value": row[3]} for row in data]
+
+@contaminantes_router.get("/metales-acuosa", response_model=List[MetalesAcuosaSchema])
+async def get_metales_acuosa(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Dissolved metals in aqueous matrix by metal type and station."""
+    data = db.query(
+        MetalesDisueltosEnLaMatrizAcuosa.dia,
+        MetalesDisueltosEnLaMatrizAcuosa.estaciones_poal,
+        MetalesDisueltosEnLaMatrizAcuosa.parametros_poal,
+        MetalesDisueltosEnLaMatrizAcuosa.value
+    ).all()
+    return [{"dia": row[0], "estaciones_poal": row[1], "parametros_poal": row[2], "value": row[3]} for row in data]
+
+@hidrologia_router.get("/caudal", response_model=List[CaudalSchema])
+async def get_caudal(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly average flow of running water by fluviometric station."""
+    data = db.query(
+        CaudalMedioDeAguasCorrientes.mes,
+        CaudalMedioDeAguasCorrientes.aguas_corrientes,
+        CaudalMedioDeAguasCorrientes.estaciones_fluviometricas,
+        CaudalMedioDeAguasCorrientes.value
+    ).all()
+    return [{"mes": row[0], "aguas_corrientes": row[1], "estaciones_fluviometricas": row[2], "value": row[3]} for row in data]
+
+@hidrologia_router.get("/pozos", response_model=List[PozoSchema])
+async def get_pozos(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Static level of groundwater by well station."""
+    data = db.query(
+        NivelEstaticoDeAguasSubterraneas.dia,
+        NivelEstaticoDeAguasSubterraneas.estaciones_pozo,
+        NivelEstaticoDeAguasSubterraneas.value
+    ).all()
+    return [{"dia": row[0], "estaciones_pozo": row[1], "value": row[2]} for row in data]
+
+@meteorologicos_router.get("/lluvia", response_model=List[LluviaSchema])
+async def get_lluvia(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly precipitation by DMC meteorological station."""
+    data = db.query(
+        CantidadDeAguaCaida.mes,
+        CantidadDeAguaCaida.estaciones_meteorologicas_dmc,
+        CantidadDeAguaCaida.value
+    ).all()
+    return [{"mes": row[0], "estaciones_meteorologicas_dmc": row[1], "value": row[2]} for row in data]
+
+@meteorologicos_router.get("/evaporacion", response_model=List[EvaporacionSchema])
+async def get_evaporacion(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Real monthly evaporation by meteorological station."""
+    data = db.query(
+        EvaporacionRealPorEstacion.mes,
+        EvaporacionRealPorEstacion.estacion,
+        EvaporacionRealPorEstacion.value
+    ).all()
+    return [{"mes": row[0], "estacion": row[1], "value": row[2]} for row in data]
+
+@meteorologicos_router.get("/nieve", response_model=List[NieveSchema])
+async def get_nieve(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Snow height equivalent in water by nivometric station."""
+    data = db.query(
+        AlturaNieveEquivalenteEnAgua.dia,
+        AlturaNieveEquivalenteEnAgua.estaciones_nivometricas,
+        AlturaNieveEquivalenteEnAgua.value
+    ).all()
+    return [{"dia": row[0], "estaciones_nivometricas": row[1], "value": row[2]} for row in data]
+
+@almacenamiento_router.get("/embalses", response_model=List[EmbalseSchema])
+async def get_embalses(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly volume stored by reservoir throughout Chile."""
+    data = db.query(
+        VolumenDelEmbalsePorEmbalse.mes,
+        VolumenDelEmbalsePorEmbalse.embalse,
+        VolumenDelEmbalsePorEmbalse.value
+    ).all()
+    return [{"mes": row[0], "embalse": row[1], "value": row[2]} for row in data]
+
+# Include sub-routers in main router
+router.include_router(vistas_router)
+router.include_router(contaminantes_router)
+router.include_router(hidrologia_router)
+router.include_router(meteorologicos_router)
+router.include_router(almacenamiento_router)

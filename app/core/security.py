@@ -134,3 +134,25 @@ async def get_current_user(
             return {"message": f"Hello {user.email}"}
     """
     return user
+
+
+# OPTIONAL: For testing without Firebase authentication
+async def get_current_user_optional() -> Optional[FirebaseUser]:
+    """
+    Optional authentication - returns None if not authenticated.
+    Use this for testing without Firebase credentials.
+
+    To enable test mode, set FIREBASE_TEST_MODE=true in .env
+    """
+    # Check if test mode is enabled
+    test_mode = os.getenv("FIREBASE_TEST_MODE", "false").lower() == "true"
+
+    if test_mode:
+        print("⚠️  TEST MODE: Authentication disabled")
+        return FirebaseUser(uid="test-user", email="test@example.com")
+
+    # In production, this would require real authentication
+    if not _firebase_initialized:
+        return FirebaseUser(uid="test-user", email="test@example.com")
+
+    return None

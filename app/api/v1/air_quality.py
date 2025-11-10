@@ -2,153 +2,299 @@
 Air Quality API endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import Optional
-from datetime import datetime
+from typing import List
 
 from app.core.database import get_db
-from app.core.security import get_current_user, FirebaseUser
-from app.models.air_quality import AirQuality
-from app.schemas.air_quality import AirQualityResponse, AirQualityListResponse
+from app.core.security import get_current_user, get_current_user_optional, FirebaseUser
+from app.models.air_quality import *
+from app.schemas.air_quality import *
+from typing import Optional
 
+# Create sub-routers to organize endpoints
+climaticos_router = APIRouter(
+    prefix="/climaticos",
+    tags=["Air Quality - Climate"],
+    responses={404: {"description": "Not found"}}
+)
+
+mp25_router = APIRouter(
+    prefix="/mp25",
+    tags=["Air Quality - PM2.5"],
+    responses={404: {"description": "Not found"}}
+)
+
+mp10_router = APIRouter(
+    prefix="/mp10",
+    tags=["Air Quality - PM10"],
+    responses={404: {"description": "Not found"}}
+)
+
+o3_router = APIRouter(
+    prefix="/o3",
+    tags=["Air Quality - Ozone (O3)"],
+    responses={404: {"description": "Not found"}}
+)
+
+so2_router = APIRouter(
+    prefix="/so2",
+    tags=["Air Quality - Sulfur Dioxide (SO2)"],
+    responses={404: {"description": "Not found"}}
+)
+
+no2_router = APIRouter(
+    prefix="/no2",
+    tags=["Air Quality - Nitrogen Dioxide (NO2)"],
+    responses={404: {"description": "Not found"}}
+)
+
+co_router = APIRouter(
+    prefix="/co",
+    tags=["Air Quality - Carbon Monoxide (CO)"],
+    responses={404: {"description": "Not found"}}
+)
+
+no_router = APIRouter(
+    prefix="/no",
+    tags=["Air Quality - Nitrogen Oxide (NO)"],
+    responses={404: {"description": "Not found"}}
+)
+
+nox_router = APIRouter(
+    prefix="/nox",
+    tags=["Air Quality - Nitrogen Oxides (NOx)"],
+    responses={404: {"description": "Not found"}}
+)
+
+eventos_router = APIRouter(
+    prefix="/eventos",
+    tags=["Air Quality - Climate Events"],
+    responses={404: {"description": "Not found"}}
+)
+
+# Main router to include in main.py
 router = APIRouter()
 
+# ============================
+# Climate endpoints
+# ============================
 
-@router.get(
-    "/",
-    response_model=AirQualityListResponse,
-    summary="Get air quality measurements",
-    description="""
-    Retrieve a list of air quality measurements with optional filtering.
+@climaticos_router.get("/temperatura", response_model=List[TemperaturaSchema])
+async def get_temperatura(
+    db: Session = Depends(get_db),
+    current_user: Optional[FirebaseUser] = Depends(get_current_user_optional)
+):
+    """Get all temperature data by station and month."""
+    data = db.query(VTemperatura).all()
+    return data
 
-    **Authentication required**: Include Firebase ID token in Authorization header.
-
-    **Filters:**
-    - `date_from`: Get measurements from this date onwards
-    - `date_to`: Get measurements up to this date
-    - `location`: Filter by location name (partial match)
-    - `limit`: Maximum number of records to return (default: 100, max: 1000)
-    - `offset`: Number of records to skip for pagination (default: 0)
-
-    **Example Response:**
-    ```json
-    {
-        "data": [
-            {
-                "id": 1,
-                "measurement_date": "2024-01-15T10:30:00",
-                "location": "Downtown Station",
-                "pm25": 12.5,
-                "pm10": 25.3,
-                ...
-            }
-        ],
-        "total": 150,
-        "limit": 100,
-        "offset": 0
-    }
-    ```
-    """
-)
-async def get_air_quality_list(
-    date_from: Optional[datetime] = Query(
-        None,
-        description="Filter measurements from this date (ISO format)"
-    ),
-    date_to: Optional[datetime] = Query(
-        None,
-        description="Filter measurements up to this date (ISO format)"
-    ),
-    location: Optional[str] = Query(
-        None,
-        description="Filter by location (partial match)"
-    ),
-    limit: int = Query(
-        100,
-        ge=1,
-        le=1000,
-        description="Maximum number of records to return"
-    ),
-    offset: int = Query(
-        0,
-        ge=0,
-        description="Number of records to skip"
-    ),
+@climaticos_router.get("/humedad-radiacion-uv", response_model=List[HumedadRadiacionUVSchema])
+async def get_humedad_radiacion_uv(
     db: Session = Depends(get_db),
     current_user: FirebaseUser = Depends(get_current_user)
 ):
-    """Get list of air quality measurements with optional filters."""
+    """Get relative humidity, global radiation and UVB radiation data."""
+    data = db.query(VHumedadRadiacionUV).all()
+    return data
 
-    # Build query
-    query = db.query(AirQuality)
+# ============================
+# PM2.5 endpoints
+# ============================
 
-    # Apply filters
-    if date_from:
-        query = query.filter(AirQuality.measurement_date >= date_from)
-
-    if date_to:
-        query = query.filter(AirQuality.measurement_date <= date_to)
-
-    if location:
-        query = query.filter(AirQuality.location.ilike(f"%{location}%"))
-
-    # Get total count
-    total = query.count()
-
-    # Apply pagination and ordering
-    measurements = (
-        query
-        .order_by(AirQuality.measurement_date.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-
-    return AirQualityListResponse(
-        data=measurements,
-        total=total,
-        limit=limit,
-        offset=offset
-    )
-
-
-@router.get(
-    "/{measurement_id}",
-    response_model=AirQualityResponse,
-    summary="Get specific air quality measurement",
-    description="""
-    Retrieve a specific air quality measurement by ID.
-
-    **Authentication required**: Include Firebase ID token in Authorization header.
-
-    **Example Response:**
-    ```json
-    {
-        "id": 1,
-        "measurement_date": "2024-01-15T10:30:00",
-        "location": "Downtown Station",
-        "pm25": 12.5,
-        "pm10": 25.3,
-        "co": 0.5,
-        ...
-    }
-    ```
-    """
-)
-async def get_air_quality_by_id(
-    measurement_id: int,
+@mp25_router.get("/anual", response_model=List[Mp25AnualSchema])
+async def get_mp25_anual(
     db: Session = Depends(get_db),
     current_user: FirebaseUser = Depends(get_current_user)
 ):
-    """Get a specific air quality measurement by ID."""
+    """Annual PM2.5 data - statistics by station."""
+    data = db.query(VMp25Anual).all()
+    return data
 
-    measurement = db.query(AirQuality).filter(AirQuality.id == measurement_id).first()
+@mp25_router.get("/mensual", response_model=List[Mp25MensualSchema])
+async def get_mp25_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly PM2.5 data - average by station."""
+    data = db.query(VMp25Mensual).all()
+    return data
 
-    if not measurement:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Air quality measurement with ID {measurement_id} not found"
-        )
+# ============================
+# PM10 endpoints
+# ============================
 
-    return measurement
+@mp10_router.get("/anual", response_model=List[Mp10AnualSchema])
+async def get_mp10_anual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Annual PM10 data - statistics by station."""
+    data = db.query(VMp10Anual).all()
+    return data
+
+@mp10_router.get("/mensual", response_model=List[Mp10MensualSchema])
+async def get_mp10_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly PM10 data - average by station."""
+    data = db.query(VMp10Mensual).all()
+    return data
+
+# ============================
+# O3 endpoints
+# ============================
+
+@o3_router.get("/anual", response_model=List[O3AnualSchema])
+async def get_o3_anual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Annual tropospheric ozone data - statistics by station."""
+    data = db.query(VO3Anual).all()
+    return data
+
+@o3_router.get("/mensual", response_model=List[O3MensualSchema])
+async def get_o3_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly tropospheric ozone data - average by station."""
+    data = db.query(VO3Mensual).all()
+    return data
+
+# ============================
+# SO2 endpoints
+# ============================
+
+@so2_router.get("/anual", response_model=List[So2AnualSchema])
+async def get_so2_anual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Annual SO2 data - statistics by monitoring station."""
+    data = db.query(VSo2Anual).all()
+    return data
+
+@so2_router.get("/mensual", response_model=List[So2MensualSchema])
+async def get_so2_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly SO2 data - average by monitoring station."""
+    data = db.query(VSo2Mensual).all()
+    return data
+
+# ============================
+# NO2 endpoints
+# ============================
+
+@no2_router.get("/anual", response_model=List[No2AnualSchema])
+async def get_no2_anual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Annual NO2 data - statistics by monitoring station."""
+    data = db.query(VNo2Anual).all()
+    return data
+
+@no2_router.get("/mensual", response_model=List[No2MensualSchema])
+async def get_no2_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly NO2 data - average by monitoring station."""
+    data = db.query(VNo2Mensual).all()
+    return data
+
+# ============================
+# CO endpoints
+# ============================
+
+@co_router.get("/anual", response_model=List[CoAnualSchema])
+async def get_co_anual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Annual CO data - statistics by monitoring station."""
+    data = db.query(VCoAnual).all()
+    return data
+
+@co_router.get("/mensual", response_model=List[CoMensualSchema])
+async def get_co_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly CO data - average by monitoring station."""
+    data = db.query(VCoMensual).all()
+    return data
+
+# ============================
+# NO endpoints
+# ============================
+
+@no_router.get("/anual", response_model=List[NoAnualSchema])
+async def get_no_anual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Annual NO data - statistics by monitoring station."""
+    data = db.query(VNoAnual).all()
+    return data
+
+@no_router.get("/mensual", response_model=List[NoMensualSchema])
+async def get_no_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly NO data - average by monitoring station."""
+    data = db.query(VNoMensual).all()
+    return data
+
+# ============================
+# NOx endpoints
+# ============================
+
+@nox_router.get("/anual", response_model=List[NoxAnualSchema])
+async def get_nox_anual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Annual NOx data - statistics by monitoring station."""
+    data = db.query(VNoxAnual).all()
+    return data
+
+@nox_router.get("/mensual", response_model=List[NoxMensualSchema])
+async def get_nox_mensual(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Monthly NOx data - average by monitoring station."""
+    data = db.query(VNoxMensual).all()
+    return data
+
+# ============================
+# Climate events endpoints
+# ============================
+
+@eventos_router.get("/olas-calor", response_model=List[OlasCalorSchema])
+async def get_olas_calor(
+    db: Session = Depends(get_db),
+    current_user: FirebaseUser = Depends(get_current_user)
+):
+    """Number of heat wave events by region and year."""
+    data = db.query(VNumEventosDeOlasDeCalor).all()
+    return data
+
+# Include sub-routers in main router
+router.include_router(climaticos_router)
+router.include_router(mp25_router)
+router.include_router(mp10_router)
+router.include_router(o3_router)
+router.include_router(so2_router)
+router.include_router(no2_router)
+router.include_router(co_router)
+router.include_router(no_router)
+router.include_router(nox_router)
+router.include_router(eventos_router)
