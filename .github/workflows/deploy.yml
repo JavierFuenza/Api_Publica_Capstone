@@ -64,7 +64,7 @@ jobs:
               echo "✓ Container is running"
 
               # Test health endpoint
-              if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+              if curl -f http://srv1105893.hstgr.cloud:8000/health > /dev/null 2>&1; then
                 echo "✓ Health check passed"
               else
                 echo "✗ Health check failed"

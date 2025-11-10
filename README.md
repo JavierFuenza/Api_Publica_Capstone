@@ -113,10 +113,10 @@ uvicorn app.main:app --reload
 
 Once running, the API is available at:
 
-- **API Docs (Swagger UI)**: http://localhost:8000/docs
-- **Alternative Docs (ReDoc)**: http://localhost:8000/redoc
-- **Health Check**: http://localhost:8000/health
-- **API Info**: http://localhost:8000/api/v1
+- **API Docs (Swagger UI)**: http://srv1105893.hstgr.cloud:8000/docs
+- **Alternative Docs (ReDoc)**: http://srv1105893.hstgr.cloud:8000/redoc
+- **Health Check**: http://srv1105893.hstgr.cloud:8000/health
+- **API Info**: http://srv1105893.hstgr.cloud:8000/api/v1
 
 ### Authentication
 
@@ -124,7 +124,7 @@ All endpoints (except `/health`) require Firebase authentication. Include the Fi
 
 ```bash
 curl -H "Authorization: Bearer <your-firebase-token>" \
-     http://localhost:8000/api/v1/air-quality
+     http://srv1105893.hstgr.cloud:8000/api/v1/air-quality
 ```
 
 See [FRONTEND_INTEGRATION.md](./FRONTEND_INTEGRATION.md) for detailed frontend integration instructions.
@@ -148,7 +148,7 @@ See [FRONTEND_INTEGRATION.md](./FRONTEND_INTEGRATION.md) for detailed frontend i
 ```bash
 # Get air quality measurements from the last week
 curl -H "Authorization: Bearer eyJhbGc..." \
-     "http://localhost:8000/api/v1/air-quality?date_from=2024-01-01&limit=10"
+     "http://srv1105893.hstgr.cloud:8000/api/v1/air-quality?date_from=2024-01-01&limit=10"
 ```
 
 ## Project Structure

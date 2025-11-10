@@ -62,7 +62,7 @@ const fetchMetrics = async () => {
   const token = await user.getIdToken();
 
   // Make API request
-  const response = await fetch('https://your-api-url.com/api/metrics', {
+  const response = await fetch('http://srv1105893.hstgr.cloud:8000/api/metrics', {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -95,7 +95,7 @@ const fetchMetrics = async () => {
 
   const token = await user.getIdToken();
 
-  const response = await axios.get('https://your-api-url.com/api/metrics', {
+  const response = await axios.get('http://srv1105893.hstgr.cloud:8000/api/metrics', {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -113,7 +113,7 @@ Create a reusable API client to avoid repeating token logic:
 // src/services/apiClient.js
 import { getAuth } from 'firebase/auth';
 
-const API_BASE_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.PUBLIC_API_URL || 'http://srv1105893.hstgr.cloud:8000';
 
 class ApiClient {
   async getAuthToken() {
@@ -273,7 +273,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
+  baseURL: import.meta.env.PUBLIC_API_URL || 'http://srv1105893.hstgr.cloud:8000'
 });
 
 // Request interceptor to add token
@@ -348,7 +348,7 @@ user.getIdToken().then(token => console.log(token));
 ```bash
 # Copy token from console, then test:
 curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-     http://localhost:8000/api/metrics
+     http://srv1105893.hstgr.cloud:8000/api/metrics
 ```
 
 ### 3. Verify Token Expiration Handling
@@ -364,7 +364,7 @@ Set up environment variables for API URL:
 
 ```bash
 # .env.local (for local development)
-PUBLIC_API_URL=http://localhost:8000
+PUBLIC_API_URL=http://srv1105893.hstgr.cloud:8000
 
 # .env.production (for production)
 PUBLIC_API_URL=https://api.yourapp.com
